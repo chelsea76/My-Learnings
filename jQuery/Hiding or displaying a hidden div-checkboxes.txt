@@ -1,0 +1,60 @@
+Hiding or displaying a hidden div on checking chekboxes :-
+----------------------------------------------------------
+
+  <div id="error"></div>
+
+  <%@project_types.each do |record|%>
+    <%if record.id == 1 %>
+      <input type="checkbox" name= "checkbox<%=record.id%>" value =1 id ="checkbox<%=record.id%>">  <%=record.name%>
+    <%else%>
+      <input type="checkbox" name= "checkbox<%=record.id%>" value =1 id ="checkbox<%=record.id%>">  <%=record.name%>
+    <%end %>
+  <% end %>
+  
+  <div id="all_projects" style="display:none">
+      <%=  render :partial =>"admins/projects_by_project_type" %>
+  </div>
+  
+  
+----------------------------------------  
+
+<script type="text/javascript">
+         jQuery(document).ready(function($){
+                  jQuery('#submit').click(function(){
+                    jQuery("#error").html(" ");
+                    sum = 0;
+
+                    for(var i=1 ; i<=jQuery("input[id*='checkbox']").size() ; i++){
+                      if (jQuery('#checkbox'+i+':checked').val() == "1")
+                      {
+                        sum = sum + 1;
+                      }
+                    }
+
+                    if (sum == 0)
+                    {
+                      jQuery("#error").html("<font color= 'RED'>Please at least select one option from <%=@project_type_names%></font>");
+                      return false;
+                    }
+                  });
+
+				  
+                  <%@project_types.each do |record|%>
+                    jQuery('#checkbox<%=record.id%>').click(function(){
+                      jQuery('#all_projects').show();
+                      sum = 0;
+                      for(var i=1 ; i<=jQuery("input[id*='checkbox']").size() ; i++){
+                        if (jQuery('#checkbox'+i+':checked').val() == "1")
+                          {
+                            sum = sum + 1;
+                          }
+                        }
+
+                      if (sum == 0)
+                      {
+                        jQuery('#all_projects').hide();
+                      }
+                    });
+                  <% end %>
+         });
+</script>

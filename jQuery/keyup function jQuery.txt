@@ -1,0 +1,4 @@
+jQuery("#mail_div").keyup(function(){
+  new_mail_text = jQuery("#mail_body").val();
+  jQuery("#hidden_mail_content").val(new_mail_text);
+});

@@ -1,0 +1,140 @@
+  <% form_tag(action_name_spend_financials_url,{:method => "post"}) do %>
+    <br><div id="error"></div>
+    Year :
+    <select name = "year" id = "year" >
+      <option value = "<%= Time.now.last_year.year%>"><%= Time.now.last_year.year %></option>
+      <option value = "<%= Time.now.year %>" selected><%= Time.now.year %></option>
+      <option value = "<%= Time.now.next_year.year %>"><%= Time.now.next_year.year %></option>
+    </select> 
+    <input type="checkbox" name= "user" value = 1 id="user" checked >   Users
+    <input type="checkbox" name= "fte" value= 1 id = "fte" > FTE's
+    <br>
+    <input type="checkbox" name= "project1" value ="1" checked id ="project1">   Project1
+    <input type="checkbox" name= "project2" id =  "project2"  value ="1"> Project2
+    <input type="checkbox" name= "project3" id = "project3" value ="1"> Project3 
+
+    <input type ="submit" Value ="Submit" id ="generate_report">
+  <% end %>
+  <br><br>
+  <div id = "loading-report" style = "display:none"> Loading Report <%=image_tag("spinner.gif", {:style => "align: absmiddle"})%> </div>
+</center>
+<div class="report"> </div>
+
+<script type="text/javascript">
+         jQuery(document).ready(function($){      
+                  jQuery('#generate_report').click(function(){ 
+                  jQuery("#error").html(" ");
+                  if(jQuery("#project1:checked").val()!=1 && jQuery("#project2:checked").val()!=1 && jQuery("#project3:checked").val()!=1)
+                  {
+                        jQuery("#error").html("<font color= 'RED'>Please at least select one option from department and also from Project1 / Project2 / Project3</font>");
+                         return false;
+                  }
+                   if(jQuery("#user:checked").val()!=1 && jQuery("#fte:checked").val()!=1 )
+                  {
+                        jQuery("#error").html("<font color= 'RED'>Please at least select one option from department and also from Project1 / Project2 / Project3</font>");
+                         return false;
+                  }
+                         jQuery("#loading-report").show();
+                         jQuery(".report").html("");
+                         generate_financial_report("<%= action_name_spend_view_financials_url %>");
+                  return false;
+                });
+             
+
+               });     
+</script>
+
+---------------------------------------------------------------------------------
+In public/javascripts/js_file.js
+
+function generate_financial_report(url,authenticityToken){
+    var inputs = new Object;
+    inputs["year"] = jQuery("#year").val();
+    inputs["project1"] = jQuery("#project1:checked").val();
+    inputs["project2"] = jQuery("#project2:checked").val();
+    inputs["project3"] = jQuery("#project3:checked").val();
+      inputs["fte"] = jQuery("#fte:checked").val();
+        inputs["user"] = jQuery("#user:checked").val();
+   jQuery.ajax({
+   url: url,
+    data: inputs,
+    error: function (XMLHttpRequest, textStatus, errorThrown) {
+      alert("Something went wrong!! Please try again later.");
+                
+    },
+    success: function(data){  
+    jQuery("#loading-report").hide();
+    jQuery(".report").html(data);  
+    },
+    type: "get"
+  });
+}
+
+
+-----------------------------------------------------------------------------------
+
+In action_name_spend_view.html.erb in financials folder
+
+
+<br>
+* All numbers below are in $ '000
+
+
+<% total = Hash.new %>
+<%for month in 1..12 %>
+  <% total["total" + month.to_s] = 0%>
+<%end%>
+<table>
+  <tr><td class="datatable" ><strong>Department</strong></td><td class="datatable" >  <strong><center>Jan </center> </strong></td><td class="datatable" >  <strong><center>Feb </center> </strong></td><td class="datatable" >  <strong><center>Mar </center> </strong></td><td class="datatable" >  <strong><center>Apr </center> </strong></td><td class="datatable" >  <strong><center>May </center> </strong></td><td class="datatable" >  <strong><center>Jun </center> </strong></td><td class="datatable">  <strong><center>Jul </center> </strong></td><td class="datatable" >  <strong><center>Aug </center> </strong></td><td class="datatable" >  <strong><center>Sep </center> </strong></td><td class="datatable" >  <strong><center>Oct </center> </strong></td><td class="datatable" >  <strong><center>Nov </center> </strong></td><td class="datatable" >  <strong><center>Dec </center> </strong></td><td class="datatable" >  <strong><center>Total </center> </strong></td></tr>
+  <%@portfoilo_report.each do |department_details|%>
+    <%if department_details["burn_rate"].to_i != 0  && department_details["name"]!='Support'%>
+      <tr class="<%= cycle('rowA', 'rowB') %>">
+        <td class="datatable"> <%=link_to department_details["name"], action_name_show_ctrl_name_path(:id =>department_details["id"], :project_type =>@project_type, :year => @year, :department_name => department_details["name"],:people_type => @people_type) %></td>
+        <%for month in 1..12 %>
+          <% total["total" + month.to_s] = total["total" + month.to_s] +department_details["burn_rate_total" + month.to_s].to_i%>
+          <%department_total = department_details["burn_rate_total" + month.to_s]%>
+          <td class="datatable">  <%=approximation(department_total)%> </td>
+        <%end%>
+        <td class="datatable"> <%=approximation(department_details["burn_rate"].to_i)%></td>
+
+      </tr>
+    <%end %>
+  <%end %>
+
+  <tr>
+    <td class="datatable">Total Department</td>
+    <% sum = 0%>
+    <%for month in 1..12 %>
+      <% sum = sum + total["total" + month.to_s].to_i%>
+      <td class="datatable"> <%=approximation(total["total" + month.to_s])%></td>
+    <%end%>
+    <td class="datatable"> <%=approximation(sum)%> </td>
+  </tr>
+
+  <%@portfoilo_report.each do |port|%>
+    <% if port["name"]=='Support'%>
+      <tr class=rowA>
+        <td class="datatable" width="216px"> <%=link_to port["name"], action_name_show_ctrl_name_path(:id =>port["id"], :project_type =>@project_type, :year => @year, :department_name => port["name"],:people_type => @people_type) %></td>
+        <%for month in 1..12 %>
+          <% total["total" + month.to_s] = total["total" + month.to_s] +port["burn_rate_total" + month.to_s].to_i%>
+          <%department_total = port["burn_rate_total" + month.to_s]%>
+          <td class="datatable">  <%=approximation(department_total)%> </td>
+        <%end%>
+        <td class="datatable"> <%=approximation(port["burn_rate"].to_i)%></td>
+      </tr>
+    <%end%>
+  <%end%>
+
+   <tr>
+    <td class="datatable">Total(Department+Support)</td>
+    <% sum = 0%>
+    <%for month in 1..12 %>
+      <% sum = sum + total["total" + month.to_s].to_i%>
+      <td class="datatable"> <%=approximation(total["total" + month.to_s])%></td>
+    <%end%>
+    <td class="datatable"> <%=approximation(sum)%> </td>
+  </tr>
+</table>
+
+
+

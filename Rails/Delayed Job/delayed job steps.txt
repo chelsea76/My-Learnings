@@ -1,0 +1,110 @@
+gem 'daemons'
+gem 'delayed_job_active_record'
+
+bundle install
+
+rails g delayed_job:active_record
+
+rake db:migrate
+
+rake jobs:work (For localhost)
+
+Capfile :-
+----------
+require "delayed/recipes"
+
+namespace :delayed_job do
+  task :start, :roles => :app do
+    run <<-CMD
+      cd #{current_release} &&
+      #{rails_env} ruby script/delayed_job start &
+    CMD
+  end
+
+  task :stop, :roles => :app do
+    run <<-CMD
+      cd #{current_release} &&
+      #{rails_env} ruby script/delayed_job stop &
+    CMD
+  end
+
+  task :restart, :roles => :app do
+    run <<-CMD
+      cd #{current_release} &&
+      #{rails_env} ruby script/delayed_job restart &
+    CMD
+  end
+end
+
+after "deploy:stop", "delayed_job:stop"
+after "deploy:start", "delayed_job:start"
+after "deploy:restart", "delayed_job:restart"
+
+
+---------------------------------------------------------------
+lib/data_upload.rb
+
+require 'parse_excel'
+
+class DataUpload < Struct.new(:job_id, :file_name)
+
+  class << self
+	def parse_data_template(job_id,file_name)
+	  begin
+	    job = UploadStatus.find_by_job_id(job_id)
+	    update_job(job,"In Progress...")
+	    ParseExcel.begin_parse_data_template(file_name,job_id)
+	    update_job(job,"Completed Data Template Calculation")
+	  rescue Exception => e
+	    log_errors(e,job_id)
+	    update_job(job,"Errors") if job
+	  end
+	end
+
+	def push_staging_metric_value(job_id)
+	  begin
+	    job = UploadStatus.find_by_job_id(job_id)
+	    update_job(job,"In Progress...")
+	    StagingMetricValue.push_to_live_app(job_id)
+	    update_job(job,"Completed")
+	  rescue Exception => e
+	     log_errors(e,job_id)
+	     update_job(job,"Errors") if job
+	     StagingMetricValue.delete_all
+	     StagingMetricMetaValue.delete_all
+	  end
+	end
+
+	def push_staging_benckmark(job_id)
+      begin
+        job = UploadStatus.find_by_job_id(job_id)
+       	update_job(job,"In Progress...")
+        StagingBenchmark.push_to_live_app
+        update_job(job,"Completed")
+      rescue Exception => e
+        log_errors(e,job_id)
+        update_job(job,"Errors") if job
+        StagingBenchmark.delete_all
+      end
+    end
+
+    def update_job(*args)
+	  job = args[0]
+	  job.update_attributes(:status => args[1],
+       :end_time => args[1].eql?("Completed") || args[1].eql?("Errors") ? Time.now : nil )
+	end
+
+	def log_errors(e,job_id)
+	  log.debug "[#{Time.now}] ERROR FOR JOB: #{job_id}"
+	  log.debug "[#{Time.now}] ERROR: #{e.message}"
+	  log.debug "[#{Time.now}] ERROR BACKTRACE: #{e.backtrace.join("\n")}\n"
+	end
+
+	def log
+	  require 'logger'
+	  @@log ||= Logger.new("#{Rails.root}/log/uploads.log", 'monthly')
+	end
+
+  end
+
+end

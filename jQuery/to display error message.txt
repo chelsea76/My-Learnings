@@ -1,0 +1,27 @@
+To display a error message in a div just above the main-content div :-
+----------------------------------------------------------------------
+	
+<br><div id="error"></div>
+Year :
+<select name = "year" id = "year" >
+  <option value = "<%= Time.now.last_year.year%>"><%= Time.now.last_year.year %></option>
+  <option value = "<%= Time.now.year %>" selected><%= Time.now.year %></option>
+  <option value = "<%= Time.now.next_year.year %>"><%= Time.now.next_year.year %></option>
+</select> 
+
+<input type ="submit" Value ="Submit" id ="generate_report">
+
+--------------------------------------
+
+
+<script type="text/javascript">
+         jQuery(document).ready(function($){      
+                  jQuery('#generate_report').click(function(){ 
+                  jQuery("#error").html(" ");
+                  if(jQuery("#project1:checked").val()!=1 && jQuery("#project2:checked").val()!=1 && jQuery("#project3:checked").val()!=1)
+                  {
+                        jQuery("#error").html("<font color= 'RED'>Please at least select one option from department and also from Location1 / Location2 / Location3</font>");
+                         return false;
+                  }
+		});
+</script>		

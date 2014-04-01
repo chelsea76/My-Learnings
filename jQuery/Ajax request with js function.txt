@@ -1,0 +1,221 @@
+Ajax request with js function :-
+-----------------------------------
+
+
+<%= javascript_include_tag 'jquery-1.3.2.min', 'jquery-ui-1.7.2.custom.min' %>
+<%= stylesheet_link_tag 'jquery-ui-1.7.2.custom' %> 
+
+<script>
+  jQuery.noConflict();
+</script>
+
+<%= javascript_include_tag "js_file" %>
+
+  <%= render :partial => "common/capture_time_to_load" %>
+<center>
+<%= render :partial=>"ctrl_name/financial_navigation_link" %>
+
+
+  <div class="newheading" align="left">
+  <h2><span>department Spend</span>
+     <input type="image" id="export_to_excel" title="Export to Excel" style="float:right" src="../images/excel-16.gif"/>
+  </h2>
+  </div>
+
+  
+  <% form_tag(ctrl_name_action_name_url,{:method => "post"}) do %>
+    <br/><div id="error"></div>
+    Year :
+    <select name = "year" id = "year" >
+      <option value = "<%= Time.now.last_year.year%>"><%= Time.now.last_year.year %></option>
+      <option value = "<%= Time.now.year %>" selected><%= Time.now.year %></option>
+      <option value = "<%= Time.now.next_year.year %>"><%= Time.now.next_year.year %></option>
+    </select> 
+    <input type="checkbox" name= "worker" value = 1 id="worker" checked >   Workers
+    <input type="checkbox" name= "fte" value= 1 id = "fte" > FTE's
+    <br>
+
+
+    <%@project_types.each do |record|%>
+      <%if record.id == ProjectType.find_by_name('project_name').id %>
+        <input type="checkbox" name= "checkbox<%=record.id%>" value =1 checked id ="checkbox<%=record.id%>">  <%=record.name%>
+      <%else%>
+        <input type="checkbox" name= "checkbox<%=record.id%>" value =1 id ="checkbox<%=record.id%>">  <%=record.name%>
+      <%end %>
+    <% end %>
+  
+  
+  
+    <input type ="submit" Value ="Submit" id ="generate_report">
+  <% end %>
+  <br><br>
+  <div id = "loading-report" style = "display:none"> Loading Report <%=image_tag("spinner.gif", {:style => "align: absmiddle"})%> </div>
+</center>
+<div class="report"> </div>
+
+<script type="text/javascript">
+         jQuery(document).ready(function($){      
+                  jQuery('#generate_report').click(function(){ 
+                  jQuery("#error").html(" ");
+                  sum = 0;                  
+                   
+                  <%@project_types.each do |record|%>
+                    if (jQuery('#checkbox'+<%=record.id%>+':checked').val() == "1")
+                    {
+                      sum = sum + 1;
+                    }                
+                  <%end%>
+
+                  if (sum == 0)
+                  {
+                    jQuery("#error").html("<font color= 'RED'>Please at least select one option from users and also from <%=@project_type_names%></font>");
+                    return false;
+                  }                  
+
+                   if(jQuery("#worker:checked").val()!=1 && jQuery("#fte:checked").val()!=1 )
+                  {
+                        jQuery("#error").html("<font color= 'RED'>Please at least select one option from users and also from <%=@project_type_names%></font>");
+                         return false;
+                  }
+                         jQuery("#loading-report").show();
+                         jQuery(".report").html("");
+                         generate_report("<%= action_name_view_ctrl_name_url() %>");
+                  return false;
+                 });
+
+                 jQuery('#export_to_excel').click(function(){
+                      year = jQuery("#year").val();
+                      var request_string = '' ;
+                     // for(var i=1 ; i<=jQuery("input[id*='checkbox']").size() ; i++){
+                     <%@project_types.each do |record|%>
+
+                         var checkbox = 'checkbox<%=record.id%>'
+                         str = checkbox + '=' + jQuery("#checkbox"+<%=record.id%>+":checked").val() + '&'
+                         request_string = request_string + str
+                    //  }
+                    <%end%>
+                      fte = jQuery("#fte:checked").val();
+                      worker = jQuery("#worker:checked").val();
+                      window.location = '../ctrl_name/export_action_name?year='+year+'&'+request_string+'fte='+fte+'&worker='+worker
+                 });
+
+               });     
+</script>
+
+--------------------------------------------------------------------------------------------------
+
+In js_file.js file :-
+--------------------
+
+function generate_report(url,authenticityToken){
+    var inputs = new Object;
+    inputs["year"] = jQuery("#year").val();
+
+ arr = jQuery("input[id*='checkbox']")
+ jQuery.each(arr, function() {
+        input_name_length = this.name.length;
+        id_value = this.name.substring(8,input_name_length)
+        inputs["checkbox"+id_value] = jQuery("#checkbox"+id_value+":checked").val();
+ });
+      inputs["fte"] = jQuery("#fte:checked").val();
+        inputs["worker"] = jQuery("#worker:checked").val();
+   jQuery.ajax({
+   url: url,
+    data: inputs,
+    error: function (XMLHttpRequest, textStatus, errorThrown) {
+      alert("Something went wrong!! Please try again later.");
+                
+    },
+    success: function(data){  
+    jQuery("#loading-report").hide();
+    jQuery(".report").html(data);  
+    },
+    type: "get"
+  });
+   }
+
+   
+-------------------------------------------------------------------------------------------------------------
+
+In FinancialController 
+
+  def action_name_view
+
+    @year = params[:year].nil? ? Time.now.year : params[:year].to_i
+    @all_project_types = ProjectType.find(:all).collect{|p| p.id}
+    @project_type = filters_for_worker_spend(params)
+    @people_type =  filters_for_people_type(params)
+    @data = Person.get_data  @year,   @project_type, @people_type, nil    
+    @portfoilo_report = Person.department_report @data
+  end
+
+
+-------------------------------------------------------------------------------------
+
+in ctrl_name/action_name_view.html.erb
+
+
+
+
+
+<br>
+
+<% total = Hash.new %>
+<%for month in 1..12 %>
+  <% total["total" + month.to_s] = 0%>
+<%end%>
+<table>
+  <tr><td class="datatable" ><strong>department</strong></td><td class="datatable" >  <strong><center>Jan </center> </strong></td><td class="datatable" >  <strong><center>Feb </center> </strong></td><td class="datatable" >  <strong><center>Mar </center> </strong></td><td class="datatable" >  <strong><center>Apr </center> </strong></td><td class="datatable" >  <strong><center>May </center> </strong></td><td class="datatable" >  <strong><center>Jun </center> </strong></td><td class="datatable">  <strong><center>Jul </center> </strong></td><td class="datatable" >  <strong><center>Aug </center> </strong></td><td class="datatable" >  <strong><center>Sep </center> </strong></td><td class="datatable" >  <strong><center>Oct </center> </strong></td><td class="datatable" >  <strong><center>Nov </center> </strong></td><td class="datatable" >  <strong><center>Dec </center> </strong></td><td class="datatable" >  <strong><center>Total </center> </strong></td></tr>
+  <%@portfoilo_report.each do |department_details|%>
+    <%if department_details["burn_rate"].to_i != 0  && department_details["name"]!='Support'%>
+      <tr class="<%= cycle('rowA', 'rowB') %>">
+        <td class="datatable"> <%=link_to department_details["name"], action_name_show_ctrl_name_url(:id =>department_details["id"], :project_type =>@project_type, :year => @year, :department_name => department_details["name"],:people_type => @people_type) %></td>
+        <%for month in 1..12 %>
+          <% total["total" + month.to_s] = total["total" + month.to_s] +department_details["total_cost" + month.to_s].to_i%>
+          <%department_total = department_details["total_cost" + month.to_s]%>
+          <td class="datatable">  <%=approximation(department_total)%> </td>
+        <%end%>
+        <td class="datatable"> <%=approximation(department_details["burn_rate"].to_i)%></td>
+
+      </tr>
+    <%end %>
+  <%end %>
+
+  <tr>
+    <td class="datatable">Total department</td>
+    <% sum = 0%>
+    <%for month in 1..12 %>
+      <% sum = sum + total["total" + month.to_s].to_i%>
+      <td class="datatable"> <%=approximation(total["total" + month.to_s])%></td>
+    <%end%>
+    <td class="datatable"> <%=approximation(sum)%> </td>
+  </tr>
+
+  <%@portfoilo_report.each do |port|%>
+    <% if port["name"]=='Support'%>
+      <tr class=rowA>
+        <td class="datatable" width="216px"> <%=link_to port["name"], action_name_show_ctrl_name_url(:id =>port["id"], :project_type =>@project_type, :year => @year, :department_name => port["name"],:people_type => @people_type) %></td>
+        <%for month in 1..12 %>
+          <% total["total" + month.to_s] = total["total" + month.to_s] +port["total_cost" + month.to_s].to_i%>
+          <%department_total = port["total_cost" + month.to_s]%>
+          <td class="datatable">  <%=approximation(department_total)%> </td>
+        <%end%>
+        <td class="datatable"> <%=approximation(port["burn_rate"].to_i)%></td>
+      </tr>
+    <%end%>
+  <%end%>
+
+   <tr>
+    <td class="datatable">Total(department+Support)</td>
+    <% sum = 0%>
+    <%for month in 1..12 %>
+      <% sum = sum + total["total" + month.to_s].to_i%>
+      <td class="datatable"> <%=approximation(total["total" + month.to_s])%></td>
+    <%end%>
+    <td class="datatable"> <%=approximation(sum)%> </td>
+  </tr>
+</table>
+
+
+
+  

@@ -1,0 +1,24 @@
+jQuery.ajax({
+   url: '../resource_requests/get_person_obj', type: 'get', data: 'person_id='+jQuery('#people-project-<%= @request_id%>').val()+'&request_id='+<%= @request_id%>
+});
+	
+	
+ def get_person_obj
+    @person = Person.find(params[:person_id])
+    @request1 = ResourceRequest.find(params[:request_id])
+    @mail_content = "There has been an update to the team for <b>#{@request1.project.name}</b>. <br/> <b>#{@person.name}</b> for <b>#{@request1.project.name}</b> starting <b>#{@request1.start_date.strftime('%d-%b-%y')}</b> to <b>#{@request1.end_date.strftime('%d-%b-%y')}</b>."
+    respond_to do |format|
+      format.js{
+        render :update  do |page|
+            page.replace_html 'mail_body', @mail_content
+          end
+      }
+    end
+end
+
+
+-----------------------------------------------------------
+
+<%= select_tag 'department', options_for_select(@all_portfolios,"all"),
+  :onchange=>  "jQuery.ajax({url: '#{url_for :action => 'index'}', data: 'status=#{params[:status]}&department='+this.value})"
+  %>

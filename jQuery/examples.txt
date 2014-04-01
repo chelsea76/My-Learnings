@@ -1,0 +1,75 @@
+jQuery Learnings :-
+===================
+
+To open a pop-up dialog box :
+-----------------------------
+  jQuery('.select_event').live('click', function(){
+    jQuery("#event_list").dialog("option","title",'Select the event (only scheduled events appear in this list)');
+    jQuery("#event_list").dialog('open');
+    return false;
+  });
+  
+  select_event -> class of button on click of which a dialog box has to be poped up
+  event_list -> class of the div that has to be poped up
+  
+  
+Sometimes required if $.ajax is not working :-
+----------------------------------------------
+<%= javascript_include_tag 'jquery-1.6.2.min', 'jquery-ui-1.8.16.custom.min' %>
+<script type="text/javascript">
+  jQuery.noConflict();
+</script>
+
+
+study jQuer.get method from api.jQuery.com
+
+
+To do autocomplete :-
+---------------------  
+jQuery("#priority_target_company").live('focus', function(){
+    // To avoid multiple autocomplete queries.
+    jQuery("#priority_target_company").unbind(".autocomplete");
+    jQuery("#priority_target_company").autocomplete(
+      jQuery(this).attr('href'),
+      {
+        width:150,
+        selectFirst: true,
+        multiple: false,
+        matchContains: false,
+        matchSubset: false,
+        minChars: 2,
+        max:25,
+        cacheLength:null,
+        parse: function(data){
+          jQuery("#person_priority_target_id").attr('value','');
+          jQuery("#person_is_priority_target_true").attr('checked',false);
+          jQuery("#person_is_priority_target_false").attr('checked',false);
+          jQuery("#person_company_status_id option[value='']").attr('selected', 'selected');
+          jQuery("#person_revenue_id option[value='']").attr('selected', 'selected');
+          jQuery("#person_industry_id option[value='']").attr('selected', 'selected');
+          return jQuery.map(eval(data), function(row){
+            return {
+              data: row,
+              value: row.id,
+              result: row.name
+            }
+          });
+        },
+        formatItem: function(item) {
+          return item.name;
+        }
+      }).result(function(e,item){
+      jQuery("#person_priority_target_id").attr('value',item.id);
+      jQuery("#person_is_priority_target_true").attr('checked',true);
+      if(item.industry_id){
+        jQuery("#person_industry_id option[value='"+item.industry_id+"']").attr('selected', 'selected');
+      }
+      if(item.revenue_id){
+        jQuery("#person_revenue_id option[value='"+item.revenue_id+"']").attr('selected', 'selected');
+      }
+      if(item.company_status_id){
+        jQuery("#person_company_status_id option[value='"+item.company_status_id+"']").attr('selected', 'selected');
+      }
+
+    });
+  });

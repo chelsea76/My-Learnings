@@ -1,0 +1,91 @@
+Displaying a Report and giving it a link to export to excel :-
+--------------------------------------------------------------
+
+In files Controller :-
+
+  def abc_report
+    @all_abc_projects = ProjectType.find_by_name('abc').projects
+  end
+
+  def export_report
+    @all_abc_projects = ProjectType.find_by_name('abc').projects
+    headers['Content-Type'] = "application/vnd.ms-excel"
+    headers['Content-Disposition'] = "attachment; filename=abc_Report_#{Time.now.strftime("%d-%b-%Y_%I_%M_%p")}.xls"
+    headers['Cache-Control'] = ''
+      render :layout => false
+  end
+  
+----------------------------------------------------------------------------------------------------------------------  
+In files view :-
+
+In abc_report.html.erb :-
+------------------------
+<%= javascript_include_tag 'jquery-1.3.2.min' %>
+
+<script>
+  jQuery.noConflict();
+</script>
+
+<%= render :partial => "common/capture_time_to_load" %>
+<center>
+<%= render :partial=>"files/files_link" %>
+
+<div class="newheading" align="left">
+  <h2><span>abc Report</span>
+     <input type="image" id="export_to_excel" title="Export to Excel" style="float:right" src="../images/excel-16.gif"/>
+  </h2>
+</div>
+<br/>
+<table style="width:987px" border="0">
+  <tr>
+    <th style="border:1px solid;display: table-cell"><b><%= sort_link 'Project Name', :name %></b></th>
+    <th style="border:1px solid;display: table-cell;text-align: center"><b><%= sort_link 'Total Project Spend To Date', :project_spend_to_date %></b></th>
+    <th style="border:1px solid;display: table-cell;text-align: center"><b><%= sort_link 'Total Amount Recovered', :amount_recovered %></b></th>
+  </tr>
+
+  <% for project in @all_abc_projects %>
+    <tr class="<%= cycle('rowA', 'rowB') %>">
+      <td class="datatable" width="33%">
+        <%= link_to shorten(project.name,40), project, {:title => project.name} %>
+      </td>
+      <td class="datatable" width="33%" style="text-align:center">
+        <%=project.project_spend_to_date%>
+      </td>
+      <td class="datatable" width="33%" style="text-align:center">
+        <%=project.amount_recovered%>
+      </td>
+    </tr>
+  <% end %>
+</table>
+
+<script type="text/javascript">
+   jQuery(document).ready(function($){
+     jQuery('#export_to_excel').click(function(){
+          window.location = '../files/export_report'
+     });
+   });     
+</script>
+
+
+In export_report.html.erb :-
+--------------------------------
+
+<table border = 1>
+  <tr><th bgcolor = "#CCCCCC"> Project Name</th><th bgcolor = "#CCCCCC"> Total Project Spend To Date</th><th bgcolor = "#CCCCCC">Total Amount Recovered</th></tr>
+  <%@all_abc_projects.each do |project|%>
+    <tr>
+        <td>
+          <%= project.name %>
+        </td>
+        <td align="center">
+          <%= project.project_spend_to_date %>
+        </td>
+        <td align="center">
+          <%= project.amount_recovered %>
+        </td>
+     </tr>
+   <% end %>
+</table>
+
+
+  

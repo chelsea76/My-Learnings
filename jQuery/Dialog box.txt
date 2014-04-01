@@ -1,0 +1,54 @@
+ jQuery('#assign-email-<%= @request_id%>').click(function(){
+    jQuery("#assign_button").val('1');    
+
+    if(jQuery('#people-project-<%= @request_id %>').val() == ""){
+      alert("Please select a team member");
+      return false;
+    }
+
+    jQuery.ajax({
+       url: '/resource_requests/get_person_obj', type: 'get', data: 'person_id='+jQuery('#people-project-<%= @request_id%>').val()+'&request_id='+<%= @request_id%>
+    });
+
+    jQuery("#mail_div").keyup(function(){
+      new_mail_text = jQuery("#mail_body").val();
+      jQuery("#hidden_mail_content").val(new_mail_text);
+    });
+
+    jQuery("#mail_div").dialog({
+     autoOpen: false,
+     modal: true,
+     width: 531,
+     resizable: false,
+     buttons: {
+              "Cancel": function() {
+              jQuery(this).dialog("close");
+              return false;
+              },
+              "Confirm": function() {
+              jQuery(this).dialog("close");
+              mail_text = jQuery("#mail_body").val();
+              jQuery("#hidden_mail_content").val(mail_text);
+             // alert("============"+jQuery("#hidden_mail_content").val());
+              jQuery("#form-<%=@request_id%>").submit();              
+              }
+
+     }
+    });
+    jQuery("#mail_div").dialog('open');
+
+    return false;
+});
+
+---------------------------------------------------------------------
+
+In the view page :-
+
+<% mail_content = "" %>
+<div id="mail_div" title="E-mail Content" style="display:none">
+  <textarea id="mail_body" style="height:300px;width:500px">
+    <%=mail_content%>
+  </textarea>
+</div>
+
+<input type="hidden" name="new_mail_content" id ="hidden_mail_content" value=""></input>

@@ -1,0 +1,221 @@
+Updating a div by Ajax request without using rails :-
+--------------------------------------------------------
+
+In projects Controller
+  def action_name
+    if super_admin?
+      @report_year = params[:year].nil? ? Time.now.year : params[:year].to_i
+      @project_ids = get_project_ids(params)     
+      @get_data = Person.get_data  @report_year,   some_other_aciont(params),  'worker', nil , @project_ids
+      @portfoilo_report = Person.department_report @get_data
+      headers['Content-Type'] = "application/vnd.ms-excel"
+      headers['Content-Disposition'] = "attachment; filename=worker_Spend_#{Time.now.strftime("%d-%b-%Y_%I_%M_%p")}.xls"
+      headers['Cache-Control'] = ''
+      render :layout => false
+    else
+      render :text => "You are not authorized to see this page"
+    end
+  end
+
+  
+In Admins Controller
+  def get_projects_for_project_type
+    project_type_ids = params[:project_type_ids].split(',')
+    year = params[:year].to_i
+    @all_selected_projects = ProjectType.get_projects(project_type_ids,year)
+  end
+
+
+In ProjectType Model 
+  def self.get_projects(project_ids,year)
+    all_projects = []
+    project_ids.each { |id|
+      all_projects << Project.projects_for_year(id,year)
+    }
+    all_projects.flatten
+  end  
+
+
+
+In view page :-
+-----------------
+<%= javascript_include_tag 'jquery-1.3.2.min' %>
+
+<script>
+  jQuery.noConflict();
+</script>
+
+<center>
+<%= render :partial=>"projects/financial_navigation_link" %>
+</center>
+<h2><span>worker Spend Export</span></h2>
+<br/>
+
+<% form_tag(:controller => 'projects' , :action => 'action_name') do %>
+   <br/><div id="error"></div>
+
+  Year :
+  <select id="year" name = "year" >
+    <option value = "<%= Time.now.last_year.year%>"><%= Time.now.last_year.year %></option>
+    <option value = "<%= Time.now.year %>" selected><%= Time.now.year %></option>
+    <option value = "<%= Time.now.next_year.year %>"><%= Time.now.next_year.year %></option>
+  </select> 
+
+  <br/>   <br/>
+    
+
+  <%@project_types.each do |record|%>
+    <%if record.id == 1 %>
+      <input type="checkbox" name= "checkbox<%=record.id%>" value =1 id ="checkbox<%=record.id%>">  <%=record.name%>
+    <%else%>
+      <input type="checkbox" name= "checkbox<%=record.id%>" value =1 id ="checkbox<%=record.id%>">  <%=record.name%>
+    <%end %>
+  <% end %>
+
+  
+  <br/>  <br/>
+  <input id="submit" type ="submit" Value ="Submit"/>
+  <br/><br/>
+ <div id="all_projects">
+ </div>
+<% end %>
+
+
+
+<script type="text/javascript">
+         jQuery(document).ready(function($){
+                  jQuery('#submit').click(function(){
+                    jQuery("#error").html(" ");
+                    sum = 0;
+
+                   // for(var i=1 ; i<=jQuery("input[id*='checkbox']").size() ; i++){
+                    <%@project_types.each do |record|%>
+                     
+                      if (jQuery('#checkbox'+<%=record.id%>+':checked').val() == "1")
+                      {
+                        sum = sum + 1;
+                      }
+                     <%end%>
+                    //}
+
+                    if (sum == 0)
+                    {
+                      jQuery("#error").html("<font color= 'RED'>Please at least select one option from <%=@project_type_names%></font>");
+                      return false;
+                    }
+
+                    arr = jQuery("input[id*='project']")
+                    count = 0;
+                    jQuery.each(arr,function(){
+                      count = count + jQuery(this).attr('checked')
+                    });
+                    if (count < 1)
+                    {
+                       jQuery("#error").html("<font color= 'RED'>Please select atleast one project.</font>");
+                       return false;
+                    }
+                    else{jQuery("#error").html("");}
+
+                  });
+
+                  <%@project_types.each do |record|%>
+                    jQuery('#checkbox<%=record.id%>').click(function(){
+                      getAllProjects();
+                    });
+                  <% end %>
+
+                  jQuery('#year').change(function(){
+                      getAllProjects();
+                  });
+
+                  function getAllProjects(){
+                      jQuery("#error").html(" ");
+                      sum = 0;
+                      arr = [];
+                      <%@project_types.each do |record|%>
+                      if (jQuery('#checkbox'+<%=record.id%>+':checked').val() == "1")
+                          {
+                            arr.push(<%=record.id%>);
+                            sum = sum + 1;
+                          }
+                      <% end %>
+
+                      if (sum == 0)
+                      {
+                        jQuery('#all_projects').hide();
+                      }
+
+                      jQuery.ajax({
+                         url: '../admins/get_projects_for_project_type', type: 'get', data: 'year='+jQuery('#year').val()+'&project_type_ids='+arr, success: function(data){
+                           jQuery("#all_projects").html(data);
+                            if (sum == 0)
+                            {
+                              jQuery('#all_projects').hide();
+                            }else{
+                              jQuery('#all_projects').show();
+                            }
+
+                         }
+                      });
+                  }
+         });
+</script>
+
+-----------------------------------------------------------------------------
+In Admins - get_projects_for_project_type.html.erb
+
+
+<%= javascript_include_tag 'jquery-1.3.2.min', 'jquery.tablesorter.min' %>
+
+<table id="projects_table" style="width:687px" border="0">
+<thead>
+<tr>
+    <td class="checkbox_td"><%=check_box_tag("cheque_all", "1", true, :class => "select_multiple")%></td>
+    <th id="name" style="font-size:8pt;"><b>Project Name</b></th>
+    <th id="department" style="font-size:8pt;"><b>department</b></th>
+</tr>
+</thead>
+
+  <% if !@all_selected_projects.nil? %>
+  <% for project in @all_selected_projects %>
+  <tr>
+
+    <td>
+      <%=check_box_tag("project_#{project.id}","1",true) %>
+    </td>
+
+    <td>
+      <%= link_to shorten(project.name,40), project, {:title => project.name} %>
+    </td>
+
+    <td>
+      <%=h project.department.name unless project.department.nil? %>
+    </td>
+
+  </tr>
+<% end %>
+<% end %>
+
+</table>
+
+<script type="text/javascript">
+
+     jQuery('#name,#department').click(function(){
+       jQuery("#projects_table").tablesorter();
+     });
+     
+      jQuery('.select_multiple').click(function() {
+        var b_check = this.checked;
+        jQuery("#projects_table input[type='checkbox']").each(function(){
+          this.checked = b_check;
+        });
+      });
+
+</script>
+<style>
+tr
+{
+  border: inset;
+  border-color: white
+}
+</style>

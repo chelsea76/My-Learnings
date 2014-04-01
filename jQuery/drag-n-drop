@@ -1,0 +1,107 @@
+<div class="news-filter-container left">
+  <div class="filter-column-one">
+    <h4 class="filter-title bottom-5">Primary Filters</h4>
+    <ol id="primary_feed_settings" class="connectedSortable">
+      <% @primary_feed_settings.each do |status_name| %>
+        <li id="feed_setting" name="feed_setting" value="<%= status_name %>">
+          <%= FeedSetting::SETTINGS_LABEL[status_name] %>
+          <%= hidden_field_tag "feed_settings[primary_feed_settings][]", status_name %>
+          <img class="help-tip middle right hand" title="<%= FeedSetting::TOOL_TIP[status_name] %>" src="/ce/pulse/images/i_1.png">
+        </li>
+      <% end %>
+      <li class="drag_indicator non_sortable empty-feed-container <% if !@primary_feed_settings.blank? %> hide <% end %>">Drag and drop items here which you want to move from secondary to primary filter.</li>
+    </ol>
+  </div>
+  <div class="filter-column-two">
+    <h4 class="filter-title bottom-5">Secondary Filters</h4>
+    <ol id="secondary_feed_settings" class="connectedSortable">
+      <% @secondary_feed_settings.each do |status_name| %>
+        <li id="feed_setting" name="feed_setting" value="<%= status_name %>">
+          <%= FeedSetting::SETTINGS_LABEL[status_name] %>
+          <%= hidden_field_tag "feed_settings[secondary_feed_settings][]", status_name %>
+          <img class="help-tip middle right hand" title="<%= FeedSetting::TOOL_TIP[status_name] %>" src="/ce/pulse/images/i_1.png">
+        </li>
+      <% end %>
+      <li class="drag_indicator non_sortable empty-feed-container <% if !@secondary_feed_settings.blank? %> hide <% end %>">Drag and drop items here which you want to move from primary to secondary filter.</li>
+    </ol>
+  </div>
+</div>
+
+
+jQuery( "#primary_feed_settings, #secondary_feed_settings" ).sortable({
+  connectWith: ".connectedSortable",
+  receive: function( event, ui ) { 
+    var current_element = ui.item;
+    var setting_type = current_element.parent().attr("id");
+    current_element.children("input").attr("name", "feed_settings["+ setting_type +"][]");
+    current_element.children("input").attr("id", "feed_settings_"+ setting_type +"_");
+    if (current_element.siblings("li#feed_setting").size() > 1){
+      jQuery("ol#"+setting_type+" li.empty-feed-container").hide();
+    }
+  },
+  start: function( event, ui) {
+    var current_element = ui.item;
+    var setting_type = current_element.parent().attr("id");
+    if (current_element.siblings("li#feed_setting").size() == 0){
+      jQuery("ol#"+setting_type+" li.empty-feed-container").show();
+    }
+  },
+  stop: function( event, ui) {
+    var current_element = ui.item;
+    var setting_type = current_element.parent().attr("id");
+    if (current_element.siblings("li#feed_setting").size() == 0){
+      jQuery("ol#"+setting_type+" li.empty-feed-container").hide();
+    }
+  }
+}).disableSelection();
+
+
+/*Styles for feed settings*/
+.news-filter-container{
+    margin-bottom: 20px;
+    width: 600px;
+}
+.filter-column-one,
+.filter-column-two{
+    float: left;
+    width: 42%;
+}
+.filter-column-two{
+    border-left: 1px solid #DFDFDF;
+    margin-left: 25px;
+    padding-left: 25px;
+}
+.filter-title{
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 24px;
+    overflow: hidden;
+}
+.news-filter-container ol{
+    border: 1px dashed #DFDFDF;
+    min-height: 350px;
+    padding: 0 15px;
+}
+.news-filter-container ol li{
+    background:#F2F2F2;
+    border: 1px solid #DFDFDF;
+    cursor: move;
+    line-height: 15px;
+    margin: 10px 0;
+    padding: 10px 8px 8px;
+    width: 200px;
+}
+.news-filter-container ol li:last{
+    margin-bottom: 0;
+}
+.news-filter-container ol li.empty-feed-container{
+    background: none;
+    border: 3px dashed #E7E7E7;
+    color: #666666;
+    font-size: 14px;
+    height: 100px;
+    line-height: 26px;
+    text-align: center;
+}
+/*End style for feed settings*/

@@ -1,0 +1,6 @@
+1) Revert back from deamon-spawn to daemons -v 1.0.10
+
+2) Use ghazel-daemons gem
+
+Command that runs on INT :-
+RAILS_ENV=integration ruby script/delayed_job start

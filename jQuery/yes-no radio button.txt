@@ -1,0 +1,76 @@
+  <%=  collection_select("people_project", "person_id", @people, :id,:name, {:prompt => "Please select"},:id => "people-project-" + @request_id) %>
+  <%="Please Edit this request and enter location " if @request.people_type.nil? or @request.location.nil?  %>
+      
+  <span id = "rate-box-<%= @request_id%>" style = "padding-left: 230px; display:none">
+   <font style= "70%/160% verdana,sans-serif" color="#192666" size ="1.5">
+	 <b>Hourly Rate:</b>
+	 <span id='show-<%=@request_id%>' style="cursor:pointer" onclick="jQuery(this).hide();jQuery('#rate-edit-<%=@request_id%>').css('display', 'inline');"><a><u>Show</u></a></span>
+	 <div id='rate-edit-<%=@request_id%>' style="display:none">
+	   $ <%= f.text_field :rate, :size =>4, :id => "rate-" + @request_id  %>
+		<span id='hide' style=" cursor:pointer" onclick="jQuery('#rate-edit-<%=@request_id%>').hide();jQuery('#show-<%=@request_id%>').css('display', 'inline');"><a><u>Hide</u></a></span>
+   </div></font>
+   <div id = "send_notification" style = "padding-top: 5px; padding-right: 60px; color: black; text-align: left">
+	 Do you wish to send Assignment Notification ?
+	  <%#*<input type="radio" name= "send_noti" value ="Yes"> Yes </input>%>
+	  <%#*<input type="radio" name= "send_noti" value ="No" checked> No </input>%>
+	  <div id="yes_radio_button_<%= @request_id%>" class="left">
+		<%=  radio_button_tag "send_noti_#{@request_id}" , "0", false, :id => "send_noti_yes_#{@request_id}"  %> Yes
+	  </div>
+	  <div id="no_radio_button_<%= @request_id%>" class="left selected">
+		 <%=  radio_button_tag "send_noti_#{@request_id}" , "0", true, :id => "send_noti_no_#{@request_id}"%> No
+	  </div>
+	  
+	 
+	</div>
+
+  <div id="email_notification_form_<%= @request_id%>" style="display:none">
+	<%= render :partial =>"add_more_email_ids_form" %>
+  </div>
+ </span> 
+ 
+-------------------------------------------------------------------------------------------------------------------
+
+ jQuery('#people-project-<%= @request_id%>').change(function(){
+       jQuery('#rate-<%= @request_id %>').val("");
+       if(jQuery('#people-project-<%= @request_id %>').val() == "")
+         {jQuery('#rate-box-<%= @request_id %>').hide();}
+       else
+       {        
+        jQuery('#loading-validation-<%= @request_id %>').show();
+        jQuery('#rate-box-<%= @request_id %>').show();
+        jQuery('#email_recipients<%= @request_id%>').val('');
+        jQuery('#email_notification_form_<%= @request_id%>').show();
+        jQuery('#email_notification_form_<%= @request_id%>').hide();
+        $("#send_noti_yes_<%= @request_id%>").val('0');
+        $('input[id="send_noti_yes_<%= @request_id%>"]').attr('checked', false);
+        $('input[id="send_noti_no_<%= @request_id%>"]').attr('checked', true);
+        validation_of_per_allocation("<%=validation_for_allocation_resource_requests_url() %>",jQuery("#people-project-<%=@request_id%>").val(),"<%=@request.start_date.strftime('%B %d, %Y')%>", "<%=@request.end_date.strftime('%B %d, %Y')%>", "<%= @request_id%>","<%=@request.allocation_percentage%>");
+       }
+  }); 
+  
+ jQuery("input[name='send_noti_<%= @request_id%>']").change(function(){
+
+    if ($("#send_noti_yes_<%= @request_id%>").val() == '0'){
+        $("#send_noti_yes_<%= @request_id%>").val('1')
+        $("#no_radio_button_<%= @request_id%>").removeClass("selected");
+        $("#yes_radio_button_<%= @request_id%>").addClass("selected");
+        $("#email_notification_form_<%= @request_id%>").show();
+        jQuery.ajax({
+          url: "/people/get_all_email_ids",
+          type: "GET",
+          data: '',
+          dataType : 'json',
+          async : false,
+          context : document.body,
+          success: function(response){
+          }
+        })
+    }
+    else{
+        $("#send_noti_yes_<%= @request_id%>").val('0')
+        $("#yes_radio_button_<%= @request_id%>").removeClass("selected");
+        $("#no_radio_button_<%= @request_id%>").addClass("selected");
+        $("#email_notification_form_<%= @request_id%>").hide();
+        $("#email_recipients_<%= @request_id%>").val('');
+    }
+ });  
